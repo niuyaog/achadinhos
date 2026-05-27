@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signIn, isSimulationMode, getSessionUser } from '../../../lib/supabase/authHelper';
+import { signIn, isSimulationMode } from '../../../lib/supabase/authHelper';
 import { isDemoLoginEnabled } from '../../../lib/supabase/config';
 
 export default function AdminLoginPage() {
@@ -14,20 +14,28 @@ export default function AdminLoginPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const simulationActive = isSimulationMode();
 
-  // Check initial configurations and active sessions
+  // No automatic redirect on mount based on session/localStorage.
+  // The login page will ALWAYS render fully to avoid any redirect loops.
   useEffect(() => {
-    let isMounted = true;
-    const checkActiveSession = async () => {
-      const user = await getSessionUser();
-      if (isMounted && user) {
-        router.push('/admin');
+    // If there is any inconsistent state, clear it out.
+    // Real validation happens on login click.
+    const clearState = async () => {
+      try {
+        if (!isSimulationMode()) {
+          const { supabase } = await import('../../../lib/supabase/client');
+          await supabase.auth.signOut();
+        } else {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('achadinhos_mock_session');
+          }
+        }
+        await fetch('/admin/api/session', { method: 'DELETE' });
+      } catch (e) {
+        console.error('Failed to clear previous session', e);
       }
     };
-    checkActiveSession();
-    return () => {
-      isMounted = false;
-    };
-  }, [router]);
+    clearState();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +48,7 @@ export default function AdminLoginPage() {
       if (error) {
         setErrorMsg(error.message);
       } else if (data.user) {
+        // Redirecionamento ocorre SOMENTE após sucesso validado no backend
         router.push('/admin');
       }
     } catch {
