@@ -69,3 +69,9 @@ tmp/
 # loose generated/reference images
 b7ad364c-7dd8-4671-87cf-a3eabecca41b*.png
 
+# audit / internal documentation markdown (keep README, AGENTS, CLAUDE)
+/*.md
+!README.md
+!AGENTS.md
+!CLAUDE.md
+

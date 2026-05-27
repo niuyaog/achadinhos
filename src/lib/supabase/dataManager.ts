@@ -21,7 +21,7 @@ import {
   RecentClickLog,
 } from '../../types';
 import { Database } from '../../types/database.types';
-import { withDefaultAllowedDomain } from '../security/affiliateUrl';
+import { withDefaultAllowedDomain, isAllowedAffiliateUrl } from '../security/affiliateUrl';
 
 type ProductTagRow = {
   product_id: string;
@@ -281,6 +281,21 @@ export const getProductById = async (id: string): Promise<ProductWithDetails | n
  */
 export const saveProduct = async (prod: Partial<ProductWithDetails>) => {
   assertDataSourceAvailable();
+
+  // Validate affiliate URLs before persisting any data
+  if (prod.offers && prod.offers.length > 0) {
+    for (const off of prod.offers) {
+      if (off.affiliate_url) {
+        const storeDomain = off.store?.allowed_domain || null;
+        if (!isAllowedAffiliateUrl(off.affiliate_url, storeDomain)) {
+          const storeName = off.store?.name || 'loja desconhecida';
+          throw new Error(
+            `Link afiliado inválido para a loja "${storeName}": a URL precisa ser http/https e pertencer ao domínio permitido (${storeDomain || 'não configurado'}).`
+          );
+        }
+      }
+    }
+  }
 
   if (isSupabaseConfigured()) {
     const isEdit = !!prod.id;

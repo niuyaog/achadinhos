@@ -4,9 +4,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../components/Header';
 import CategoryTabs from '../components/CategoryTabs';
 import ProductSection from '../components/ProductSection';
-import { getProducts, getCategories, getClickStats } from '../lib/supabase/dataManager';
+import { getProducts, getCategories } from '../lib/supabase/dataManager';
 import { mockProducts, mockCategories } from '../data/mockData';
-import { ProductWithDetails, Category, ClickLog } from '../types';
+import { ProductWithDetails, Category } from '../types';
 import { isSimulationMode } from '../lib/supabase/config';
 
 export default function HomePage() {
@@ -14,7 +14,7 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState('novidades');
   const [products, setProducts] = useState<ProductWithDetails[]>(() => (isSimulationMode() ? mockProducts : []));
   const [categories, setCategories] = useState<Category[]>(() => (isSimulationMode() ? mockCategories : []));
-  const [clicks, setClicks] = useState<ClickLog[]>([]);
+  const [clickCounts, setClickCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,8 +24,17 @@ export default function HomePage() {
         setProducts(prods);
         const cats = await getCategories();
         setCategories(cats);
-        const clickStats = await getClickStats();
-        setClicks(clickStats);
+        try {
+          const res = await fetch('/api/public/click-counts');
+          if (res.ok) {
+            const data: { product_id: string; click_count: number }[] = await res.json();
+            const counts: Record<string, number> = {};
+            data.forEach((d) => { counts[d.product_id] = d.click_count; });
+            setClickCounts(counts);
+          }
+        } catch (clickErr) {
+          console.error('Failed to load click counts:', clickErr);
+        }
       } catch (err) {
         console.error('Failed to load product data:', err);
       } finally {
@@ -68,19 +77,12 @@ export default function HomePage() {
 
   // Mais clicados — sorted by click count
   const mostClicked = useMemo(() => {
-    const counts: Record<string, number> = {};
-    clicks.forEach((c) => {
-      if (c.product_id) {
-        counts[c.product_id] = (counts[c.product_id] || 0) + 1;
-      }
-    });
-
     return [...activeProducts].sort((a, b) => {
-      const clicksA = counts[a.id] || 0;
-      const clicksB = counts[b.id] || 0;
+      const clicksA = clickCounts[a.id] || 0;
+      const clicksB = clickCounts[b.id] || 0;
       return clicksB - clicksA;
     });
-  }, [activeProducts, clicks]);
+  }, [activeProducts, clickCounts]);
 
   // Destaques
   const featuredProducts = useMemo(() => {
