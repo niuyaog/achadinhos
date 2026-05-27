@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+:root {
+  --background: #FBF8F3;
+  --foreground: #3E3230;
+  --card-bg: #FFFFFF;
+  --border-color: #E8E0D4;
+  --primary-brown: #8B6F5E;
+  --deep-brown: #3E3230;
+  --accent-warm: #D4A574;
+  --muted-text: #9A8C85;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
+}
+
+/* Custom scrollbar hiding utilities */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.font-serif {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+
+/* Smooth hover transitions for interactive elements */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
