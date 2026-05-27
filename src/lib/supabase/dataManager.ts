@@ -270,6 +270,34 @@ export const getProducts = async (): Promise<ProductWithDetails[]> => {
   return readLocalJson('achadinhos_products', mockProducts);
 };
 
+export const stripPrivateOfferFields = (product: ProductWithDetails): ProductWithDetails => {
+  return {
+    ...product,
+    offers: product.offers.map((o) => {
+      const safeOffer = { ...o };
+      delete (safeOffer as Partial<typeof safeOffer>).affiliate_url;
+      delete (safeOffer as Partial<typeof safeOffer>).external_product_id;
+      delete (safeOffer as Partial<typeof safeOffer>).sync_status;
+      delete (safeOffer as Partial<typeof safeOffer>).last_synced_at;
+      delete (safeOffer as Partial<typeof safeOffer>).created_at;
+      delete (safeOffer as Partial<typeof safeOffer>).updated_at;
+      return safeOffer;
+    }),
+  };
+};
+
+export const getPublicProducts = async (): Promise<ProductWithDetails[]> => {
+  if (isSupabaseConfigured()) {
+    const res = await fetch('/api/public/products', { next: { revalidate: 60 } });
+    if (!res.ok) throw new Error('Failed to load public products');
+    return res.json();
+  }
+
+  // Simulation mode fallback (local storage is only available in the browser)
+  const products = await getProducts();
+  return products.map(stripPrivateOfferFields);
+};
+
 export const getProductById = async (id: string): Promise<ProductWithDetails | null> => {
   const products = await getProducts();
   return products.find((p) => p.id === id) || null;
@@ -443,8 +471,29 @@ export const deleteProduct = async (id: string): Promise<boolean> => {
 export const uploadProductImage = async (productId: string, file: File): Promise<Partial<ProductImage>> => {
   assertDataSourceAvailable();
 
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${fileExt}`;
+  // Security validation: Type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('Tipo de arquivo não permitido. Use apenas JPEG, PNG ou WEBP.');
+  }
+
+  // Security validation: Size (5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error('A imagem não pode ter mais que 5MB.');
+  }
+
+  // Sanitize extension (no SVGs, HTML, etc)
+  const originalExt = file.name.split('.').pop()?.toLowerCase() || '';
+  const extMap: Record<string, string> = {
+    jpg: 'jpg',
+    jpeg: 'jpg',
+    png: 'png',
+    webp: 'webp',
+  };
+  const safeExt = extMap[originalExt] || 'jpg';
+
+  // Secure random file name
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${safeExt}`;
   const filePath = `products/${productId}/${fileName}`;
 
   if (isSupabaseConfigured()) {

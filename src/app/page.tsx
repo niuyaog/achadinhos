@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../components/Header';
 import CategoryTabs from '../components/CategoryTabs';
 import ProductSection from '../components/ProductSection';
-import { getProducts, getCategories } from '../lib/supabase/dataManager';
+import { getPublicProducts, getCategories } from '../lib/supabase/dataManager';
 import { mockProducts, mockCategories } from '../data/mockData';
 import { ProductWithDetails, Category } from '../types';
 import { isSimulationMode } from '../lib/supabase/config';
@@ -20,7 +20,7 @@ export default function HomePage() {
   useEffect(() => {
     const loadDynamicData = async () => {
       try {
-        const prods = await getProducts();
+        const prods = await getPublicProducts();
         setProducts(prods);
         const cats = await getCategories();
         setCategories(cats);

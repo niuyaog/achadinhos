@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { isSimulationMode, isSupabaseConfigured } from './config';
+import { isSimulationMode, isSupabaseConfigured, isDemoLoginEnabled } from './config';
 
 /**
  * Checks if the actual Supabase URL has been configured by the developer.
@@ -65,7 +65,7 @@ export const signIn = async (email: string, password: string) => {
     }
 
     return response;
-  } else if (isSimulationMode()) {
+  } else if (isSimulationMode() && isDemoLoginEnabled()) {
     if (email.trim() === 'admin@admin.com' && password === 'admin') {
       const mockUser = {
         id: 'mock-admin-id-123',

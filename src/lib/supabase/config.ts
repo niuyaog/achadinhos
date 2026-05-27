@@ -15,6 +15,9 @@ export const isSupabaseConfigured = (): boolean => {
 
 export const isSimulationMode = () => !isProduction() && !isSupabaseConfigured();
 
+export const isDemoLoginEnabled = () => 
+  !isProduction() && process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true';
+
 export const canUseMockFallback = () => !isProduction();
 
 export const assertSupabaseConfiguredForProduction = () => {

@@ -100,6 +100,28 @@ export default function ProductForm({ initialProduct, isEditMode = false }: Prod
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    if (images.length + files.length > 15) {
+      alert('Limite de 15 imagens por produto.');
+      e.target.value = '';
+      return;
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+
+    for (let i = 0; i < files.length; i++) {
+      if (!allowedTypes.includes(files[i].type)) {
+        alert('Selecione apenas imagens no formato JPEG, PNG ou WEBP.');
+        e.target.value = '';
+        return;
+      }
+      if (files[i].size > maxSizeBytes) {
+        alert('Uma ou mais imagens excedem o tamanho máximo de 5MB.');
+        e.target.value = '';
+        return;
+      }
+    }
+
     setUploading(true);
     const newImages = [...images];
 
@@ -122,8 +144,9 @@ export default function ProductForm({ initialProduct, isEditMode = false }: Prod
         newImages.push(finalImg);
       }
       setImages(newImages);
-    } catch {
-      alert('Erro ao fazer upload da imagem.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao fazer upload da imagem.';
+      alert(msg);
     } finally {
       setUploading(false);
       // Reset input value
@@ -431,7 +454,7 @@ export default function ProductForm({ initialProduct, isEditMode = false }: Prod
                 <input
                   type="file"
                   multiple
-                  accept="image/*"
+                  accept="image/jpeg, image/png, image/webp"
                   onChange={handleFileUpload}
                   disabled={uploading}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"

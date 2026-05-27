@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getProducts, logProductClick } from '../../../lib/supabase/dataManager';
+import { getPublicProducts, logProductClick } from '../../../lib/supabase/dataManager';
 import { ProductWithDetails } from '../../../types';
 import ProductCard from '../../../components/ProductCard';
 import { getOfferDisplayPrice } from '../../../lib/services/shopeeSync';
@@ -19,7 +19,7 @@ export default function ProductDetailPage() {
   useEffect(() => {
     const loadProductDetails = async () => {
       try {
-        const prods = await getProducts();
+        const prods = await getPublicProducts();
         setProducts(prods);
         const found = prods.find((p) => p.slug === slug && p.is_active);
         setProduct(found || null);

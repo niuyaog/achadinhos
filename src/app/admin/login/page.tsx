@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signIn, isSimulationMode, getSessionUser } from '../../../lib/supabase/authHelper';
+import { isDemoLoginEnabled } from '../../../lib/supabase/config';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -71,11 +72,13 @@ export default function AdminLoginPage() {
               <p>
                 A integração do Supabase está estruturada, mas aguardando suas credenciais reais no <code>.env.local</code>.
               </p>
-              <p className="font-bold bg-white/50 px-2.5 py-1 rounded-md mt-1 border border-[#FFE2A4]/50">
-                🔑 Acesse com:<br/>
-                Email: <span className="underline select-all">admin@admin.com</span><br/>
-                Senha: <span className="underline select-all">admin</span>
-              </p>
+              {isDemoLoginEnabled() && (
+                <p className="font-bold bg-white/50 px-2.5 py-1 rounded-md mt-1 border border-[#FFE2A4]/50">
+                  🔑 Acesse com:<br/>
+                  Email: <span className="underline select-all">admin@admin.com</span><br/>
+                  Senha: <span className="underline select-all">admin</span>
+                </p>
+              )}
             </div>
           )}
 
