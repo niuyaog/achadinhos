@@ -47,9 +47,7 @@ export const getOfferDisplayPrice = (offer: OfferLike | null | undefined, store:
     return 'Indisponível';
   }
 
-  const isShopee = store.slug.toLowerCase() === 'shopee';
-  
-  if (isShopee && offer.sync_enabled && mode === 'synced_price' && offer.price !== null && offer.price !== undefined) {
+  if (offer.price !== null && offer.price !== undefined && Number(offer.price) > 0) {
     return `R$ ${Number(offer.price).toLocaleString('pt-BR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,

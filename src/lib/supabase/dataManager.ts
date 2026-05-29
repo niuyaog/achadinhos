@@ -254,8 +254,21 @@ export const getProducts = async (): Promise<ProductWithDetails[]> => {
     const products: ProductWithDetails[] = ((data || []) as SupabaseProductRow[]).map((prod) => ({
       ...prod,
       images: (prod.images || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
-      offers: (prod.offers || [])
+      offers: Object.values((prod.offers || [])
         .filter((offer): offer is ProductOffer & { store: Store } => Boolean(offer.store))
+        .reduce((acc, current) => {
+          const existing = acc[current.store_id];
+          if (!existing) {
+            acc[current.store_id] = current;
+          } else {
+            if (current.is_active && !existing.is_active) {
+              acc[current.store_id] = current;
+            } else if (current.is_active === existing.is_active && current.price && !existing.price) {
+              acc[current.store_id] = current;
+            }
+          }
+          return acc;
+        }, {} as Record<string, ProductOffer & { store: Store }>))
         .map((offer) => ({
           ...offer,
           store: withDefaultAllowedDomain(offer.store),
@@ -377,11 +390,19 @@ export const saveProduct = async (prod: Partial<ProductWithDetails>) => {
 
     // 3. Sync offers — delete existing and re-insert
     if (prod.offers && prod.offers.length > 0) {
+      // Deduplicate offers before inserting to prevent unique constraint issues or bugs
+      const deduplicatedOffers = Object.values(
+        prod.offers.reduce((acc, current) => {
+          acc[current.store_id] = current;
+          return acc;
+        }, {} as Record<string, typeof prod.offers[0]>)
+      );
+
       // Delete old offers for this product
       await supabase.from('product_offers').delete().eq('product_id', productId);
 
       // Insert new offers
-      const offerRows = prod.offers.map((off) => ({
+      const offerRows = deduplicatedOffers.map((off) => ({
         product_id: productId,
         store_id: off.store_id,
         affiliate_url: off.affiliate_url,

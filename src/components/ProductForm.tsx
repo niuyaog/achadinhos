@@ -35,8 +35,15 @@ export default function ProductForm({ initialProduct, isEditMode = false }: Prod
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Offers states
-  const [offers, setOffers] = useState<(ProductOffer & { store: Store })[]>(initialProduct?.offers || []);
+  const [offers, setOffers] = useState<(ProductOffer & { store: Store })[]>(() => {
+    if (!initialProduct?.offers) return [];
+    return initialProduct.offers.reduce((acc, current) => {
+      if (!acc.find((o) => o.store_id === current.store_id)) {
+        acc.push(current);
+      }
+      return acc;
+    }, [] as (ProductOffer & { store: Store })[]);
+  });
   const [selectedStoreId, setSelectedStoreId] = useState('');
   const [affiliateUrl, setAffiliateUrl] = useState('');
   const [priceMode, setPriceMode] = useState<string>('preco_sincronizado');
@@ -263,9 +270,10 @@ export default function ProductForm({ initialProduct, isEditMode = false }: Prod
     setEditingStoreId(null);
   };
 
-  const handleRemoveOffer = (storeId: string) => {
-    setOffers(offers.filter((o) => o.store_id !== storeId));
-    if (editingStoreId === storeId) {
+  const handleRemoveOffer = (offerId: string) => {
+    const offerToRemove = offers.find(o => o.id === offerId);
+    setOffers(offers.filter((o) => o.id !== offerId));
+    if (offerToRemove && editingStoreId === offerToRemove.store_id) {
       handleCancelEditOffer();
     }
   };
@@ -693,7 +701,7 @@ export default function ProductForm({ initialProduct, isEditMode = false }: Prod
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleRemoveOffer(o.store_id)}
+                          onClick={() => handleRemoveOffer(o.id)}
                           className="text-[10px] font-extrabold text-red-600 hover:text-red-700 cursor-pointer px-2 py-1.5 hover:bg-red-50 rounded transition-all"
                           title="Excluir Oferta"
                         >
