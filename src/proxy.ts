@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Allow login and session API to bypass proxy
-  if (pathname === '/admin/login' || pathname.startsWith('/admin/api/session')) {
+  // Allow login and all admin API routes to bypass proxy (they do their own auth)
+  if (pathname === '/admin/login' || pathname.startsWith('/admin/api/')) {
     return NextResponse.next();
   }
 

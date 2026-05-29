@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getCategories, getStores, saveProduct, uploadProductImage } from '../lib/supabase/dataManager';
+import { getCategories, getStores, uploadProductImage } from '../lib/supabase/dataManager';
 import { Category, Store, ProductWithDetails, ProductImage, ProductOffer } from '../types';
 import { getAffiliateUrlValidationError } from '../lib/security/affiliateUrl';
 
@@ -297,26 +297,49 @@ export default function ProductForm({ initialProduct, isEditMode = false }: Prod
     setLoading(true);
 
     try {
-      const selectedCategory = categories.find((c) => c.id === categoryId);
-
-      const productPayload: Partial<ProductWithDetails> = {
-        id: productId, // Set unified product ID
+      // Build a clean payload with only confirmed offers (no draft state)
+      const apiPayload = {
+        id: isEditMode ? productId : undefined,
         title,
         slug,
         description,
         category_id: categoryId,
         is_active: isActive,
         is_featured: isFeatured,
-        category: selectedCategory,
-        images,
-        offers,
-        tags: initialProduct?.tags || [],
+        images: images.map((img) => ({
+          image_url: img.image_url,
+          is_main: img.is_main,
+          sort_order: img.sort_order,
+        })),
+        offers: offers.map((o) => ({
+          store_id: o.store_id,
+          affiliate_url: o.affiliate_url,
+          external_product_id: o.external_product_id || null,
+          price: o.price,
+          price_mode: o.price_mode,
+          is_active: o.is_active,
+          sync_enabled: o.sync_enabled,
+          sync_status: o.sync_status || 'not_synced',
+          last_synced_at: o.last_synced_at || null,
+        })),
       };
 
-      await saveProduct(productPayload);
+      const res = await fetch('/admin/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apiPayload),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.error || `Erro do servidor (${res.status})`);
+      }
+
       router.push('/admin/produtos');
-    } catch {
-      alert('Erro ao salvar produto.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro desconhecido ao salvar produto.';
+      alert(`Erro ao salvar produto:\n${message}`);
     } finally {
       setLoading(false);
     }
