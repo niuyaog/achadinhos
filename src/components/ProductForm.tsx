@@ -270,9 +270,9 @@ export default function ProductForm({ initialProduct, isEditMode = false }: Prod
     setEditingStoreId(null);
   };
 
-  const handleRemoveOffer = (offerId: string) => {
-    const offerToRemove = offers.find(o => o.id === offerId);
-    setOffers(offers.filter((o) => o.id !== offerId));
+  const handleRemoveOffer = (storeId: string) => {
+    const offerToRemove = offers.find(o => o.store_id === storeId);
+    setOffers(offers.filter((o) => o.store_id !== storeId));
     if (offerToRemove && editingStoreId === offerToRemove.store_id) {
       handleCancelEditOffer();
     }
@@ -701,7 +701,7 @@ export default function ProductForm({ initialProduct, isEditMode = false }: Prod
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleRemoveOffer(o.id)}
+                          onClick={() => handleRemoveOffer(o.store_id)}
                           className="text-[10px] font-extrabold text-red-600 hover:text-red-700 cursor-pointer px-2 py-1.5 hover:bg-red-50 rounded transition-all"
                           title="Excluir Oferta"
                         >

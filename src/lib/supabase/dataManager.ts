@@ -389,39 +389,51 @@ export const saveProduct = async (prod: Partial<ProductWithDetails>) => {
     }
 
     // 3. Sync offers — delete existing and re-insert
-    if (prod.offers && prod.offers.length > 0) {
-      // Deduplicate offers before inserting to prevent unique constraint issues or bugs
-      const deduplicatedOffers = Object.values(
-        prod.offers.reduce((acc, current) => {
-          acc[current.store_id] = current;
-          return acc;
-        }, {} as Record<string, typeof prod.offers[0]>)
-      );
-
-      // Delete old offers for this product
-      await supabase.from('product_offers').delete().eq('product_id', productId);
-
-      // Insert new offers
-      const offerRows = deduplicatedOffers.map((off) => ({
-        product_id: productId,
-        store_id: off.store_id,
-        affiliate_url: off.affiliate_url,
-        external_product_id: off.external_product_id || null,
-        price: off.price || null,
-        price_mode: off.price_mode || 'ver_preco_na_loja',
-        is_active: off.is_active !== undefined ? off.is_active : true,
-        sync_enabled: off.sync_enabled || false,
-        sync_status: off.sync_status || 'not_synced',
-        last_synced_at: off.last_synced_at || null,
-        updated_at: new Date().toISOString(),
-      }));
-
-      const { error: offError } = await supabase
+    if (prod.offers) {
+      // First, always delete old offers for this product.
+      // We must fail loudly if delete fails to avoid accumulating ghost offers.
+      const { error: deleteError } = await supabase
         .from('product_offers')
-        .insert(offerRows);
+        .delete()
+        .eq('product_id', productId);
 
-      if (offError) {
-        console.error('Error saving product offers:', offError);
+      if (deleteError) {
+        console.error('Error deleting old product offers:', deleteError);
+        throw new Error(`Failed to clean up old offers: ${deleteError.message}`);
+      }
+
+      if (prod.offers.length > 0) {
+        // Deduplicate offers before inserting to prevent unique constraint issues or bugs
+        const deduplicatedOffers = Object.values(
+          prod.offers.reduce((acc, current) => {
+            acc[current.store_id] = current;
+            return acc;
+          }, {} as Record<string, typeof prod.offers[0]>)
+        );
+
+        // Insert new offers
+        const offerRows = deduplicatedOffers.map((off) => ({
+          product_id: productId,
+          store_id: off.store_id,
+          affiliate_url: off.affiliate_url,
+          external_product_id: off.external_product_id || null,
+          price: off.price || null,
+          price_mode: off.price_mode || 'ver_preco_na_loja',
+          is_active: off.is_active !== undefined ? off.is_active : true,
+          sync_enabled: off.sync_enabled || false,
+          sync_status: off.sync_status || 'not_synced',
+          last_synced_at: off.last_synced_at || null,
+          updated_at: new Date().toISOString(),
+        }));
+
+        const { error: offError } = await supabase
+          .from('product_offers')
+          .insert(offerRows);
+
+        if (offError) {
+          console.error('Error saving product offers:', offError);
+          throw new Error(`Failed to insert new offers: ${offError.message}`);
+        }
       }
     }
 
