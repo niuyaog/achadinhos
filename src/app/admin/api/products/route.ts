@@ -167,7 +167,32 @@ export async function POST(request: NextRequest) {
 
     // 6. Sync offers — always delete existing, then re-insert confirmed offers
     if (body.offers !== undefined) {
-      // Always delete old offers for this product
+      // First, get the IDs of existing offers so we can nullify FK references in clicks
+      const { data: existingOffers } = await adminSupabase
+        .from('product_offers')
+        .select('id')
+        .eq('product_id', productId);
+
+      if (existingOffers && existingOffers.length > 0) {
+        const existingOfferIds = existingOffers.map(o => o.id);
+
+        // Nullify offer_id in clicks table to avoid FK constraint violation.
+        // This preserves the click records (product_id, store_id remain intact).
+        const { error: clicksUpdateError } = await adminSupabase
+          .from('clicks')
+          .update({ offer_id: null })
+          .in('offer_id', existingOfferIds);
+
+        if (clicksUpdateError) {
+          console.error('[admin/api/products] clicks offer_id nullify failed:', clicksUpdateError);
+          return NextResponse.json(
+            { error: `Erro ao desvincular cliques das ofertas antigas: ${clicksUpdateError.message}` },
+            { status: 500 }
+          );
+        }
+      }
+
+      // Now safely delete old offers for this product
       const { error: offDeleteError } = await adminSupabase
         .from('product_offers')
         .delete()
