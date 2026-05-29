@@ -12,6 +12,16 @@ export { isSimulationMode, isSupabaseConfigured };
 export const getSessionUser = async () => {
   if (isSupabaseConfigured()) {
     try {
+      // 1. Verify session using the secure HTTP-only cookie endpoint first
+      if (typeof window !== 'undefined') {
+        const res = await fetch('/admin/api/session', { method: 'GET' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) return data.user;
+        }
+      }
+
+      // 2. Fallback to local storage state if API endpoint doesn't return user
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error) return null;
       return user;

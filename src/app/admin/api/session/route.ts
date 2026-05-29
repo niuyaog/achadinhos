@@ -63,3 +63,13 @@ function clearSessionCookies(response: NextResponse) {
   response.cookies.set(ADMIN_ACCESS_TOKEN_COOKIE, '', getSessionCookieOptions(0));
   response.cookies.set(ADMIN_REFRESH_TOKEN_COOKIE, '', getSessionCookieOptions(0));
 }
+
+export async function GET(request: NextRequest) {
+  const token = request.cookies.get(ADMIN_ACCESS_TOKEN_COOKIE)?.value;
+  if (!token) return NextResponse.json({ user: null });
+  
+  const validation = await validateAdminAccessToken(token);
+  if (!validation.ok) return NextResponse.json({ user: null });
+  
+  return NextResponse.json({ user: { id: validation.user.id, email: validation.user.email } });
+}
